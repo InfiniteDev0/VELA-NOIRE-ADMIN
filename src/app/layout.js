@@ -22,7 +22,7 @@ export default function RootLayout({ children }) {
   return (
     <html
       lang="en"
-      className={`${outfit.variable} ${geistMono.variable} ${outfit.className} h-full antialiased dark`}
+      className={`${outfit.variable} ${geistMono.variable} ${outfit.className} h-full antialiased`}
     >
       <body className="min-h-full bg-zinc-50">
         {children}

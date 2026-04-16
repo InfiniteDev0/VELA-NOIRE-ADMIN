@@ -1,5 +1,9 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { AppSidebar } from "@/components/app-sidebar";
+import { SiteHeader } from "@/components/site-header";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
@@ -7,12 +11,10 @@ export default async function DashboardLayout({ children }) {
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get("better-auth.session_token");
 
-  // No session at all — fast redirect
   if (!sessionCookie?.value) {
     redirect("/login");
   }
 
-  // Verify this session belongs to an admin role
   let res;
   try {
     res = await fetch(`${API_URL}/api/admin/me`, {
@@ -22,14 +24,24 @@ export default async function DashboardLayout({ children }) {
       cache: "no-store",
     });
   } catch {
-    // Backend unreachable — fail closed, redirect to login
     redirect("/login");
   }
 
   if (!res.ok) {
-    // Valid session but not an admin — back to login
     redirect("/login");
   }
 
-  return <>{children}</>;
+  return (
+    <div className="[--header-height:calc(--spacing(14))]">
+      <TooltipProvider>
+        <SidebarProvider className="flex flex-col">
+          <SiteHeader />
+          <div className="flex flex-1">
+            <AppSidebar />
+            <SidebarInset>{children}</SidebarInset>
+          </div>
+        </SidebarProvider>
+      </TooltipProvider>
+    </div>
+  );
 }

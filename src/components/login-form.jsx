@@ -14,52 +14,49 @@ import {
 } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { signIn } from "@/lib/auth-client";
+import { toast } from "sonner";
+import { signIn, signOut } from "@/lib/auth-client";
 
 export function LoginForm({ className, ...props }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setError("");
     setLoading(true);
 
-    const { data, error: authError } = await signIn.email({
-      email,
-      password,
-      fetchOptions: { credentials: "include" },
-    });
-
-    setLoading(false);
+    const { data, error: authError } = await signIn.email({ email, password });
 
     if (authError) {
-      setError("Invalid email or password.");
+      setLoading(false);
+      toast.error(authError.message || "Invalid email or password.");
       return;
     }
 
-    // Verify this account has admin role before entering dashboard
+    // Verify this session belongs to an admin
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/admin/me`,
       { credentials: "include" },
     );
 
+    setLoading(false);
+
     if (!res.ok) {
-      setError("Access denied. Admin accounts only.");
-      await signIn.email; // clear session — sign out
+      await signOut();
+      toast.error("Access denied. Admin accounts only.");
       return;
     }
 
+    toast.success("Welcome back!");
     router.push("/dashboard");
   }
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
+      <Card className={"bg-black text-white"}>
         <CardHeader className="text-center">
           <CardTitle className="text-xl">Welcome back Admin</CardTitle>
           <CardDescription>
@@ -79,6 +76,7 @@ export function LoginForm({ className, ...props }) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
+                  className={"border-gray-700"}
                 />
               </Field>
               <Field>
@@ -90,10 +88,11 @@ export function LoginForm({ className, ...props }) {
                     id="password"
                     type={showPassword ? "text" : "password"}
                     required
+                    placeholder={"*******"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={loading}
-                    className="pr-10"
+                    className={"border-gray-700"}
                   />
                   <button
                     type="button"
@@ -110,12 +109,12 @@ export function LoginForm({ className, ...props }) {
                 </div>
               </Field>
 
-              {error && (
-                <p className="text-sm text-destructive text-center">{error}</p>
-              )}
-
               <Field>
-                <Button type="submit" disabled={loading}>
+                <Button
+                  className={"bg-white text-black"}
+                  type="submit"
+                  disabled={loading}
+                >
                   {loading ? "Signing in…" : "Continue to dashboard"}
                 </Button>
               </Field>

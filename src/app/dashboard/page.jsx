@@ -1,34 +1,50 @@
-import { AppSidebar } from "@/components/app-sidebar";
-import { SiteHeader } from "@/components/site-header";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { TooltipProvider } from "@/components/ui/tooltip";
+﻿import { Bell } from "lucide-react";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 
-export const iframeHeight = "800px";
-
-export const description = "A sidebar with a header and a search form.";
-
-export default function Page() {
+export default function DashboardPage() {
   return (
-    <div className="[--header-height:calc(--spacing(14))]">
-      <TooltipProvider>
-        <SidebarProvider className="flex flex-col">
-          <SiteHeader />
-          <div className="flex flex-1">
-            <AppSidebar />
+    <div className="flex  flex-col gap-4 p-4 h-full">
+      {/* header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-lg">Hi there VN Admin</h1>
+        <Sheet>
+          <SheetTrigger asChild>
+            <button className="border p-2 relative rounded-full hover:bg-zinc-100 cursor-pointer">
+              <Bell className="size-4" />
+              {/* notication indicator dot */}
+              <div className="absolute w-[5px] h-[5px] top-0 right-1 rounded-full bg-black">
 
-            <SidebarInset>
-              <div className="flex flex-1 flex-col gap-4 p-4">
-                <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-                  <div className="aspect-video rounded-xl bg-black" />
-                  <div className="aspect-video rounded-xl bg-black" />
-                  <div className="aspect-video rounded-xl bg-black" />
-                </div>
-                <div className="min-h-screen flex-1 rounded-xl bg-black md:min-h-min" />
               </div>
-            </SidebarInset>
-          </div>
-        </SidebarProvider>
-      </TooltipProvider>
+            </button>
+          </SheetTrigger>
+          <SheetContent>
+            <SheetHeader>
+              <SheetTitle>Notifications</SheetTitle>
+              <SheetDescription>You have no notifications.</SheetDescription>
+            </SheetHeader>
+            <SheetFooter>
+              <Button type="submit">Mark all as read</Button>
+              <SheetClose asChild>
+                <Button variant="outline">Clear all notification</Button>
+              </SheetClose>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
+      </div>
+      {/* body */}
+      <div className="w-full h-full text-center flex items-center justify-center">
+        i will decide whats in this page later
+      </div>
     </div>
   );
 }

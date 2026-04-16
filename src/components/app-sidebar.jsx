@@ -1,9 +1,8 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 
 import { NavMain } from "@/components/nav-main";
-import { NavProjects } from "@/components/nav-projects";
 import { NavSecondary } from "@/components/nav-secondary";
 import { NavUser } from "@/components/nav-user";
 import {
@@ -16,138 +15,121 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import {
-  TerminalSquareIcon,
-  BotIcon,
-  BookOpenIcon,
-  Settings2Icon,
-  LifeBuoyIcon,
-  SendIcon,
-  FrameIcon,
-  PieChartIcon,
-  MapIcon,
-  TerminalIcon,
+  Shirt,
+  Gem,
+  Receipt,
+  Zap,
+  Settings2,
+  LifeBuoy,
+  Send,
+  Spotlight,
+  RockingChairIcon,
 } from "lucide-react";
 
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+    name: "Vela Noire",
+    email: "velanoire@info.com",
+    avatar: "",
   },
   navMain: [
     {
-      title: "Playground",
-      url: "#",
-      icon: <TerminalSquareIcon />,
+      title: "Products",
+      url: "/dashboard/products",
+      icon: <Shirt />,
       isActive: true,
       items: [
+        { title: "All Products", url: "/dashboard/products" },
+        { title: "New Arrivals", url: "/dashboard/products/new-arrivals" },
+        { title: "Best Sellers", url: "/dashboard/products/best-sellers" },
+        { title: "Inventory", url: "/dashboard/products/inventory" },
+      ],
+    },
+
+    {
+      title: "Collections",
+      url: "/dashboard/collections",
+      icon: <Gem />,
+      items: [
         {
-          title: "History",
-          url: "#",
+          title: "Rare Collectibles",
+          url: "/dashboard/collections/rare-collectibles",
         },
         {
-          title: "Starred",
-          url: "#",
+          title: "Infinity Bride",
+          url: "/dashboard/collections/infinity-bride",
+        },
+        { title: "Modern Muse", url: "/dashboard/collections/modern-muse" },
+        { title: "Lux Infinity", url: "/dashboard/collections/lux-infinity" },
+        {
+          title: "Traditions Reimagined",
+          url: "/dashboard/collections/traditions-reimagined",
         },
         {
-          title: "Settings",
-          url: "#",
+          title: "Simplicity Speaks",
+          url: "/dashboard/collections/simplicity-speaks",
+        },
+        { title: "Seasonal", url: "/dashboard/collections/seasonal" },
+      ],
+    },
+    {
+      title: "Orders & Sales",
+      url: "/dashboard/orders",
+      icon: <Receipt />,
+      items: [
+        { title: "All Orders", url: "/dashboard/orders" },
+        { title: "Invoices", url: "/dashboard/orders/invoices" },
+        {
+          title: "Profit Analytics",
+          url: "/dashboard/orders/profit-analytics",
         },
       ],
     },
     {
-      title: "Models",
-      url: "#",
-      icon: <BotIcon />,
+      title: "Flash Sales",
+      url: "/dashboard/flash-sales",
+      icon: <Zap />,
       items: [
+        { title: "Eid Sales", url: "/dashboard/flash-sales/eid-sales" },
         {
-          title: "Genesis",
-          url: "#",
+          title: "Seasonal Offers",
+          url: "/dashboard/flash-sales/seasonal-offers",
         },
-        {
-          title: "Explorer",
-          url: "#",
-        },
-        {
-          title: "Quantum",
-          url: "#",
-        },
+        { title: "Bridal Offers", url: "/dashboard/flash-sales/bridal-offers" },
+        { title: "24-Hour Deals", url: "/dashboard/flash-sales/24-hour-deals" },
       ],
     },
     {
-      title: "Documentation",
-      url: "#",
-      icon: <BookOpenIcon />,
+      title: "Vn Gala",
+      url: "/dashboard/products",
+      icon: <Spotlight />,
+      isActive: false,
       items: [
-        {
-          title: "Introduction",
-          url: "#",
-        },
-        {
-          title: "Get Started",
-          url: "#",
-        },
-        {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
-        },
+        { title: "Fashion Shows", url: "/dashboard/products" },
+        { title: "Art Culture", url: "/dashboard/products/new-arrivals" },
+        { title: "Models", url: "/dashboard/products/best-sellers" },
+        { title: "Vn Museum", url: "/dashboard/products/inventory" },
+      ],
+    },
+    {
+      title: "Vn Saloon",
+      url: "/dashboard/products",
+      icon: <RockingChairIcon />,
+      isActive: false,
+      items: [
+        { title: "Fashion Shows", url: "/dashboard/products" },
+        { title: "Art Culture", url: "/dashboard/products/new-arrivals" },
       ],
     },
     {
       title: "Settings",
-      url: "#",
-      icon: <Settings2Icon />,
+      url: "/dashboard/settings",
+      icon: <Settings2 />,
       items: [
-        {
-          title: "General",
-          url: "#",
-        },
-        {
-          title: "Team",
-          url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
-        },
+        { title: "Notifications", url: "/dashboard/settings/notifications" },
+        { title: "Team", url: "/dashboard/settings/team" },
+        { title: "Billing", url: "/dashboard/settings/billing" },
       ],
-    },
-  ],
-  navSecondary: [
-    {
-      title: "Support",
-      url: "#",
-      icon: <LifeBuoyIcon />,
-    },
-    {
-      title: "Feedback",
-      url: "#",
-      icon: <SendIcon />,
-    },
-  ],
-  projects: [
-    {
-      name: "Design Engineering",
-      url: "#",
-      icon: <FrameIcon />,
-    },
-    {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: <PieChartIcon />,
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: <MapIcon />,
     },
   ],
 };
@@ -162,13 +144,12 @@ export function AppSidebar({ ...props }) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <a href="#">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                  <TerminalIcon className="size-4" />
+              <a href="/dashboard" className="flex items-center">
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-black text-white  text-xs tracking-tight">
+                  VN
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">Acme Inc</span>
-                  <span className="truncate text-xs">Enterprise</span>
+                  <img src="/logo.png" width={100} alt="" />
                 </div>
               </a>
             </SidebarMenuButton>
@@ -177,8 +158,6 @@ export function AppSidebar({ ...props }) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />

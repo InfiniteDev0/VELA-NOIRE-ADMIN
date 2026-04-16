@@ -62,23 +62,24 @@ You can choose based on where it's used: landing page, packaging, or social medi
 ### Islamic Elegance Principles
 
 [Islamic Elegance Principles](https://www.notion.so/20be5c236231806faa8eebc6cafab057?pvs=21)
-[Rare Collectibles](https://www.notion.so/Rare-Collectibles-20be5c23623180c1aa00e66b1c05585d?pvs=21)
+
+
+Collections
+[Rare Collectibles]
 
 
 
-[Flash Sales for All Collections and Limited Editions](https://www.notion.so/Flash-Sales-for-All-Collections-and-Limited-Editions-20be5c23623180eb8881d5a15a389c00?pvs=21)
+[Infinity Bride]
 
-[Infinity Bride](https://www.notion.so/Infinity-Bride-20be5c23623180d4ba47dd50659c517d?pvs=21)
+[Modern Muse]
 
-[Modern Muse](https://www.notion.so/Modern-Muse-20be5c2362318093813dc560a6eac49d?pvs=21)
+[Lux Infinity]
 
-[Favorites (Bestsellers)](https://www.notion.so/Favorites-Bestsellers-20be5c236231804ab3fae8b23aa60358?pvs=21)
+[The “Traditions Reimagined”]
 
-[Lux Infinity](https://www.notion.so/Lux-Infinity-20ce5c236231808c9379f588191b817b?pvs=21)
+[The “Simplicity Speaks” Collection]
 
-[The “Traditions Reimagined”](https://www.notion.so/The-Traditions-Reimagined-20ce5c23623180cbbce6e24e5dbbe585?pvs=21)
-
-[The “Simplicity Speaks” Collection](https://www.notion.so/The-Simplicity-Speaks-Collection-20be5c2362318014884bed4116c66160?pvs=21)   , # Seasonal Collections
+["Seasonal collection"]
 
 - 🌤️ Summer Collections **– "Desert Bloom"**
 - ❄️ Winter Collections **– "Velvet Moon"**
@@ -810,3 +811,16 @@ Elegant, single-line pieces, no charms
 | Handbags | 15–20% | New drops |
 | Bracelets | 10% | On bundles or flash offers |
 | Full Sets | 30% | Eid/Ramadan full collection packs |
+
+
+
+Vela Noire Services
+
+Louis Vuitton offers an array of tailored services — including Client Advisor support, signature gift wrapping, and exclusive personalization options.
+
+Personalization
+
+Art of Gifting
+
+Packaging Customization
+
