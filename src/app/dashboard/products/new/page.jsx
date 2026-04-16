@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,7 +19,8 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { ChevronLeft, Plus, X, Upload, Trash2 } from "lucide-react";
+import { ChevronLeft, Plus, X, Trash2 } from "lucide-react";
+import { MediaUploader } from "@/components/ui/media-uploader";
 
 // ── constants ────────────────────────────────────────────────────────────────
 
@@ -41,24 +43,6 @@ const ABAYA_STYLES = [
   { value: "CLOSED_FRONT", label: "Closed Front (With Buttons)" },
   { value: "HALF_CLOSED", label: "Half Closed (3–4 Buttons)" },
   { value: "COMPLETELY_CLOSED", label: "Completely Closed (Wear From Top)" },
-];
-const COLLECTIONS = [
-  "Rare Collectibles",
-  "Infinity Bride",
-  "Modern Muse",
-  "Lux Infinity",
-  "Traditions Reimagined",
-  "Simplicity Speaks",
-  "Seasonal",
-];
-const CATEGORIES = [
-  "Abaya",
-  "Perfume",
-  "Bracelet",
-  "Handbag",
-  "Shayla",
-  "Shoes",
-  "Accessory",
 ];
 const PRODUCT_TYPES = [
   "ABAYA",
@@ -174,10 +158,15 @@ function ColorVariantCard({ variant, index, onChange, onRemove }) {
       </div>
       <div className="space-y-1.5">
         <Label className="text-xs">Images for this color</Label>
-        <div className="flex items-center gap-2 rounded-md border border-dashed border-border p-3 text-muted-foreground text-sm cursor-pointer hover:border-white/40 transition-colors">
-          <Upload className="size-4" />
-          <span>Upload images (Cloudinary — coming soon)</span>
-        </div>
+        <MediaUploader
+          folder="variants"
+          type="image"
+          multiple
+          maxFiles={8}
+          label="Upload color images"
+          value={variant.images || []}
+          onChange={(v) => onChange(index, "images", v)}
+        />
       </div>
       <div className="flex items-center gap-2">
         <Switch
@@ -196,6 +185,30 @@ function ColorVariantCard({ variant, index, onChange, onRemove }) {
 // ── main page ─────────────────────────────────────────────────────────────────
 
 export default function NewProductPage() {
+  const router = useRouter();
+
+  // ── remote data for dropdowns ──────────────────────────────────────────────
+  const [categories, setCategories] = useState([]);
+  const [collections, setCollections] = useState([]);
+
+  useEffect(() => {
+    const API = process.env.NEXT_PUBLIC_API_URL;
+    Promise.all([
+      fetch(`${API}/api/admin/categories`, { credentials: "include" }).then(
+        (r) => r.json(),
+      ),
+      fetch(`${API}/api/admin/collections`, { credentials: "include" }).then(
+        (r) => r.json(),
+      ),
+    ])
+      .then(([catData, colData]) => {
+        setCategories(catData.categories ?? []);
+        setCollections(colData.collections ?? []);
+      })
+      .catch(console.error);
+  }, []);
+
+  // ── form state ────────────────────────────────────────────────────────────
   const [form, setForm] = useState({
     name: "",
     description: "",
@@ -206,8 +219,8 @@ export default function NewProductPage() {
     discount: "",
     type: "ABAYA",
     status: "IN_PRODUCTION",
-    collection: "",
-    category: "Abaya",
+    collectionId: "",
+    categoryId: "",
     season: "",
     fabric: "",
     shaylaIncluded: false,
@@ -220,6 +233,7 @@ export default function NewProductPage() {
     availableSizes: [],
     availableLengths: [],
     availableStyles: [],
+    images: [],
     variants: [
       {
         colorName: "",
@@ -228,11 +242,14 @@ export default function NewProductPage() {
         stock: 0,
         priceOverride: "",
         isDefault: true,
+        images: [],
       },
     ],
   });
 
   const [tagInput, setTagInput] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   function set(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -270,6 +287,7 @@ export default function NewProductPage() {
         stock: 0,
         priceOverride: "",
         isDefault: false,
+        images: [],
       },
     ]);
   }
@@ -287,10 +305,72 @@ export default function NewProductPage() {
     );
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
-    // TODO: POST to /api/admin/products
-    console.log(form);
+    setSubmitError("");
+
+    if (!form.name.trim()) return setSubmitError("Product name is required.");
+    if (!form.basePrice) return setSubmitError("Base price is required.");
+    if (!form.categoryId) return setSubmitError("Please select a category.");
+    if (form.images.length === 0)
+      return setSubmitError("At least one product image is required.");
+
+    const payload = {
+      name: form.name.trim(),
+      description: form.description,
+      story: form.story,
+      caption: form.caption,
+      designer: form.designer,
+      basePrice: parseFloat(form.basePrice),
+      discount: form.discount ? parseFloat(form.discount) : 0,
+      type: form.type,
+      status: form.status,
+      categoryId: form.categoryId || null,
+      collectionId: form.collectionId || null,
+      season: form.season || null,
+      fabric: form.fabric,
+      shaylaIncluded: form.shaylaIncluded,
+      isNew: form.isNew,
+      isBestSeller: form.isBestSeller,
+      isLimitedEdition: form.isLimitedEdition,
+      launchDate: form.launchDate || null,
+      releaseDate: form.releaseDate || null,
+      tags: form.tags,
+      availableSizes: form.availableSizes,
+      availableLengths: form.availableLengths.map(Number),
+      availableStyles: form.availableStyles,
+      // MediaUploader gives { url, publicId } — backend expects url strings
+      images: form.images.map((img) => img.url),
+      variants: form.variants.map((v) => ({
+        colorName: v.colorName,
+        colorHex: v.colorHex,
+        sku: v.sku,
+        stock: parseInt(v.stock, 10) || 0,
+        priceOverride: v.priceOverride ? parseFloat(v.priceOverride) : null,
+        isDefault: v.isDefault,
+        images: (v.images || []).map((img) => img.url),
+      })),
+    };
+
+    setSubmitting(true);
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/products`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(payload),
+        },
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to create product.");
+      router.push("/dashboard/products");
+    } catch (err) {
+      setSubmitError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   const isAbaya = form.type === "ABAYA";
@@ -314,9 +394,17 @@ export default function NewProductPage() {
           <Button variant="outline" asChild>
             <Link href="/dashboard/products">Discard</Link>
           </Button>
-          <Button onClick={handleSubmit}>Save Product</Button>
+          <Button onClick={handleSubmit} disabled={submitting}>
+            {submitting ? "Saving…" : "Save Product"}
+          </Button>
         </div>
       </div>
+
+      {submitError && (
+        <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {submitError}
+        </div>
+      )}
 
       <form
         onSubmit={handleSubmit}
@@ -356,10 +444,15 @@ export default function NewProductPage() {
               <CardTitle>Media</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border p-10 text-muted-foreground text-sm cursor-pointer hover:border-white/40 transition-colors">
-                <Upload className="size-5" />
-                <span>Upload product images (Cloudinary — coming soon)</span>
-              </div>
+              <MediaUploader
+                folder="products"
+                type="image"
+                multiple
+                maxFiles={10}
+                label="Upload product images (shown when no variant is selected)"
+                value={form.images}
+                onChange={(v) => set("images", v)}
+              />
             </CardContent>
           </Card>
 
@@ -557,16 +650,16 @@ export default function NewProductPage() {
               <div className="space-y-1.5">
                 <Label>Category</Label>
                 <Select
-                  value={form.category}
-                  onValueChange={(v) => set("category", v)}
+                  value={form.categoryId}
+                  onValueChange={(v) => set("categoryId", v)}
                 >
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {CATEGORIES.map((c) => (
-                      <SelectItem key={c} value={c}>
-                        {c}
+                    {categories.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -575,22 +668,23 @@ export default function NewProductPage() {
               <div className="space-y-1.5">
                 <Label>Collection</Label>
                 <Select
-                  value={form.collection}
-                  onValueChange={(v) => set("collection", v)}
+                  value={form.collectionId}
+                  onValueChange={(v) => set("collectionId", v)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select collection" />
                   </SelectTrigger>
                   <SelectContent>
-                    {COLLECTIONS.map((c) => (
-                      <SelectItem key={c} value={c}>
-                        {c}
+                    {collections.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              {form.collection === "Seasonal" && (
+              {collections.find((c) => c.id === form.collectionId)?.slug ===
+                "seasonal" && (
                 <div className="space-y-1.5">
                   <Label>Season</Label>
                   <Select
@@ -769,8 +863,13 @@ export default function NewProductPage() {
           </Card>
 
           {/* Save */}
-          <Button className="w-full" size="lg" onClick={handleSubmit}>
-            Save Product
+          <Button
+            className="w-full"
+            size="lg"
+            type="submit"
+            disabled={submitting}
+          >
+            {submitting ? "Saving…" : "Save Product"}
           </Button>
         </div>
       </form>

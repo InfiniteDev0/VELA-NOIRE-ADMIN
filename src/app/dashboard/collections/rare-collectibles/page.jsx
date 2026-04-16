@@ -1,9 +1,14 @@
+"use client";
+import { useState } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ImageIcon, Plus, ArrowLeft, Pencil } from "lucide-react";
+import { MediaUploader } from "@/components/ui/media-uploader";
+import { Plus, ArrowLeft, Pencil } from "lucide-react";
 
 export default function RareCollectiblesPage() {
+  const [heroImages, setHeroImages] = useState([]);
+  const [heroVideo, setHeroVideo] = useState([]);
   return (
     <div className="flex flex-1 flex-col gap-6 p-6">
       <div className="flex items-center gap-3">
@@ -27,10 +32,32 @@ export default function RareCollectiblesPage() {
         </Button>
       </div>
 
-      <div className="rounded-xl border border-border bg-card h-48 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-2 text-muted-foreground">
-          <ImageIcon className="size-8" />
-          <p className="text-sm">Hero image / video — upload coming soon.</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
+            Hero Image
+          </p>
+          <MediaUploader
+            folder="collections"
+            type="image"
+            multiple
+            maxFiles={3}
+            label="Upload hero image(s)"
+            value={heroImages}
+            onChange={setHeroImages}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
+            Hero Video
+          </p>
+          <MediaUploader
+            folder="videos"
+            type="video"
+            label="Upload hero video"
+            value={heroVideo}
+            onChange={setHeroVideo}
+          />
         </div>
       </div>
 
