@@ -101,24 +101,24 @@ const data = {
     },
     {
       title: "Vn Gala",
-      url: "/dashboard/products",
+      url: "/dashboard/gala",
       icon: <Spotlight />,
       isActive: false,
       items: [
-        { title: "Fashion Shows", url: "/dashboard/products" },
-        { title: "Art Culture", url: "/dashboard/products/new-arrivals" },
-        { title: "Models", url: "/dashboard/products/best-sellers" },
-        { title: "Vn Museum", url: "/dashboard/products/inventory" },
+        { title: "Fashion Shows", url: "/dashboard/gala/fashion-shows" },
+        { title: "Art Culture", url: "/dashboard/gala/art-culture" },
+        { title: "Models", url: "/dashboard/gala/models" },
+        { title: "Vn Museum", url: "/dashboard/gala/museum" },
       ],
     },
     {
       title: "Vn Saloon",
-      url: "/dashboard/products",
+      url: "/dashboard/saloon",
       icon: <RockingChairIcon />,
       isActive: false,
       items: [
-        { title: "Fashion Shows", url: "/dashboard/products" },
-        { title: "Art Culture", url: "/dashboard/products/new-arrivals" },
+        { title: "Fashion Shows", url: "/dashboard/saloon/fashion-shows" },
+        { title: "Art Culture", url: "/dashboard/saloon/art-culture" },
       ],
     },
     {

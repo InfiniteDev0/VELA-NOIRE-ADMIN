@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useCallback } from "react";
+import { useRouter, useParams } from "next/navigation";
 import { toast } from "sonner";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
@@ -18,12 +18,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { ChevronLeft, Plus, X, Trash2 } from "lucide-react";
 import { MediaUploader } from "@/components/ui/media-uploader";
 
-// ── constants ────────────────────────────────────────────────────────────────
+// ── constants (same as new/page.jsx) ─────────────────────────────────────────
+
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
 const SIZES = ["XS", "S", "M", "L", "XL", "2XL", "3XL", "Custom"];
 const LENGTHS = [
@@ -71,6 +74,21 @@ const PRESET_TAGS = [
   "LIMITED",
 ];
 
+// ── helpers ───────────────────────────────────────────────────────────────────
+
+/** Convert a plain Cloudinary URL string → { url, publicId } for MediaUploader */
+function urlToMedia(url) {
+  if (!url || typeof url !== "string") return null;
+  const match = url.match(/\/upload\/(?:v\d+\/)?(.+?)(?:\.\w+)?$/);
+  return { url, publicId: match ? match[1] : url };
+}
+
+/** Normalise a date string from DB into datetime-local format */
+function toDatetimeLocal(iso) {
+  if (!iso) return "";
+  return iso.slice(0, 16); // "2026-04-16T14:00"
+}
+
 // ── sub-components ────────────────────────────────────────────────────────────
 
 function ToggleChip({ label, selected, onClick }) {
@@ -89,15 +107,23 @@ function ToggleChip({ label, selected, onClick }) {
   );
 }
 
-function ColorVariantCard({ variant, index, onChange, onRemove }) {
+function ColorVariantCard({ variant, index, onChange, onRemove, isOnly }) {
   return (
     <div className="rounded-lg border border-border p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium">Color {index + 1}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium">Color {index + 1}</span>
+          {variant.id && (
+            <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+              saved
+            </span>
+          )}
+        </div>
         <button
           type="button"
           onClick={onRemove}
-          className="text-muted-foreground hover:text-destructive"
+          disabled={isOnly}
+          className="text-muted-foreground hover:text-destructive disabled:opacity-30"
         >
           <Trash2 className="size-4" />
         </button>
@@ -183,74 +209,94 @@ function ColorVariantCard({ variant, index, onChange, onRemove }) {
   );
 }
 
-// ── main page ─────────────────────────────────────────────────────────────────
+// ── main page ──────────────────────────────────────────────────────────────────
 
-export default function NewProductPage() {
+export default function EditProductPage() {
+  const { id } = useParams();
   const router = useRouter();
 
-  // ── remote data for dropdowns ──────────────────────────────────────────────
+  const [loadingProduct, setLoadingProduct] = useState(true);
   const [categories, setCategories] = useState([]);
   const [collections, setCollections] = useState([]);
 
-  useEffect(() => {
-    const API = process.env.NEXT_PUBLIC_API_URL;
-    Promise.all([
-      fetch(`${API}/api/admin/categories`, { credentials: "include" }).then(
-        (r) => r.json(),
-      ),
-      fetch(`${API}/api/admin/collections`, { credentials: "include" }).then(
-        (r) => r.json(),
-      ),
-    ])
-      .then(([catData, colData]) => {
-        setCategories(catData.categories ?? []);
-        setCollections(colData.collections ?? []);
-      })
-      .catch(console.error);
-  }, []);
-
-  // ── form state ────────────────────────────────────────────────────────────
-  const [form, setForm] = useState({
-    name: "",
-    description: "",
-    story: "",
-    caption: "",
-    designer: "",
-    basePrice: "",
-    discount: "",
-    type: "ABAYA",
-    status: "IN_PRODUCTION",
-    collectionId: "",
-    categoryId: "",
-    season: "",
-    fabric: "",
-    shaylaIncluded: false,
-    isNew: true,
-    isBestSeller: false,
-    isLimitedEdition: false,
-    launchDate: "",
-    releaseDate: "",
-    tags: [],
-    availableSizes: [],
-    availableLengths: [],
-    availableStyles: [],
-    images: [],
-    variants: [
-      {
-        colorName: "",
-        colorHex: "#000000",
-        sku: "",
-        stock: 0,
-        priceOverride: "",
-        isDefault: true,
-        images: [],
-      },
-    ],
-  });
-
+  const [form, setForm] = useState(null); // null until loaded
   const [tagInput, setTagInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  // ── Load product + dropdowns ──────────────────────────────────────────────
+  useEffect(() => {
+    async function load() {
+      try {
+        const [productRes, catRes, colRes] = await Promise.all([
+          fetch(`${API}/api/admin/products/${id}`, { credentials: "include" }),
+          fetch(`${API}/api/admin/categories`, { credentials: "include" }),
+          fetch(`${API}/api/admin/collections`, { credentials: "include" }),
+        ]);
+
+        if (!productRes.ok) {
+          toast.error("Product not found.");
+          router.push("/dashboard/products");
+          return;
+        }
+
+        const { product } = await productRes.json();
+        const { categories: cats } = await catRes.json();
+        const { collections: cols } = await colRes.json();
+
+        setCategories(cats ?? []);
+        setCollections(cols ?? []);
+
+        // Normalise product data into form state
+        setForm({
+          name: product.name ?? "",
+          description: product.description ?? "",
+          story: product.story ?? "",
+          caption: product.caption ?? "",
+          designer: product.designer ?? "",
+          basePrice: product.basePrice?.toString() ?? "",
+          discount: product.discount?.toString() ?? "",
+          type: product.type ?? "ABAYA",
+          status: product.status ?? "IN_PRODUCTION",
+          categoryId: product.categoryId ?? "",
+          collectionId: product.collectionId ?? "",
+          season: product.season ?? "",
+          fabric: product.fabric ?? "",
+          shaylaIncluded: product.shaylaIncluded ?? false,
+          isNew: product.isNew ?? true,
+          isBestSeller: product.isBestSeller ?? false,
+          isLimitedEdition: product.isLimitedEdition ?? false,
+          launchDate: toDatetimeLocal(product.launchDate),
+          releaseDate: toDatetimeLocal(product.releaseDate),
+          tags: product.tags ?? [],
+          availableSizes: product.availableSizes ?? [],
+          availableLengths: product.availableLengths ?? [],
+          availableStyles: product.availableStyles ?? [],
+          // Convert URL strings → { url, publicId } for MediaUploader
+          images: (product.images ?? []).map(urlToMedia).filter(Boolean),
+          variants: (product.variants ?? [])
+            .sort((a, b) => (b.isDefault ? 1 : 0) - (a.isDefault ? 1 : 0))
+            .map((v) => ({
+              id: v.id, // existing variants carry their DB id
+              colorName: v.colorName ?? "",
+              colorHex: v.colorHex ?? "#000000",
+              sku: v.sku ?? "",
+              stock: v.stock ?? 0,
+              priceOverride: v.priceOverride?.toString() ?? "",
+              isDefault: v.isDefault ?? false,
+              images: (v.images ?? []).map(urlToMedia).filter(Boolean),
+            })),
+        });
+      } catch (err) {
+        toast.error("Failed to load product.");
+        router.push("/dashboard/products");
+      } finally {
+        setLoadingProduct(false);
+      }
+    }
+    load();
+  }, [id]);
+
+  // ── Form helpers ──────────────────────────────────────────────────────────
   function set(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
   }
@@ -281,6 +327,7 @@ export default function NewProductPage() {
     set("variants", [
       ...form.variants,
       {
+        id: null,
         colorName: "",
         colorHex: "#000000",
         sku: "",
@@ -298,73 +345,113 @@ export default function NewProductPage() {
     set("variants", updated);
   }
 
-  function removeVariant(index) {
+  async function removeVariant(index) {
+    const v = form.variants[index];
+    if (v.id) {
+      // Already in DB — delete immediately
+      try {
+        const res = await fetch(
+          `${API}/api/admin/products/${id}/variants/${v.id}`,
+          {
+            method: "DELETE",
+            credentials: "include",
+          },
+        );
+        if (!res.ok) {
+          const d = await res.json();
+          toast.error(d.error || "Failed to delete variant.");
+          return;
+        }
+        toast.success(`Variant "${v.colorName}" deleted.`);
+      } catch {
+        toast.error("Failed to delete variant.");
+        return;
+      }
+    }
     set(
       "variants",
       form.variants.filter((_, i) => i !== index),
     );
   }
 
+  // ── Save ──────────────────────────────────────────────────────────────────
   async function handleSubmit(e) {
     e.preventDefault();
-
     if (!form.name.trim()) return toast.error("Product name is required.");
     if (!form.basePrice) return toast.error("Base price is required.");
     if (!form.categoryId) return toast.error("Please select a category.");
-    if (form.images.length === 0)
-      return toast.error("At least one product image is required.");
-
-    const payload = {
-      name: form.name.trim(),
-      description: form.description,
-      story: form.story,
-      caption: form.caption,
-      designer: form.designer,
-      basePrice: parseFloat(form.basePrice),
-      discount: form.discount ? parseFloat(form.discount) : 0,
-      type: form.type,
-      status: form.status,
-      categoryId: form.categoryId || null,
-      collectionId: form.collectionId || null,
-      season: form.season || null,
-      fabric: form.fabric,
-      shaylaIncluded: form.shaylaIncluded,
-      isNew: form.isNew,
-      isBestSeller: form.isBestSeller,
-      isLimitedEdition: form.isLimitedEdition,
-      launchDate: form.launchDate || null,
-      releaseDate: form.releaseDate || null,
-      tags: form.tags,
-      availableSizes: form.availableSizes,
-      availableLengths: form.availableLengths,
-      availableStyles: form.availableStyles,
-      // MediaUploader gives { url, publicId } — backend expects url strings
-      images: form.images.map((img) => img.url),
-      variants: form.variants.map((v) => ({
-        colorName: v.colorName,
-        colorHex: v.colorHex,
-        sku: v.sku,
-        stock: parseInt(v.stock, 10) || 0,
-        priceOverride: v.priceOverride ? parseFloat(v.priceOverride) : null,
-        isDefault: v.isDefault,
-        images: (v.images || []).map((img) => img.url),
-      })),
-    };
 
     setSubmitting(true);
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/products`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify(payload),
-        },
+      // 1. PATCH the product fields + hero images
+      const productPayload = {
+        name: form.name.trim(),
+        description: form.description,
+        story: form.story,
+        caption: form.caption,
+        designer: form.designer,
+        basePrice: parseFloat(form.basePrice),
+        discount: form.discount ? parseFloat(form.discount) : 0,
+        type: form.type,
+        status: form.status,
+        categoryId: form.categoryId || null,
+        collectionId: form.collectionId || null,
+        season: form.season || null,
+        fabric: form.fabric,
+        shaylaIncluded: form.shaylaIncluded,
+        isNew: form.isNew,
+        isBestSeller: form.isBestSeller,
+        isLimitedEdition: form.isLimitedEdition,
+        launchDate: form.launchDate || null,
+        releaseDate: form.releaseDate || null,
+        tags: form.tags,
+        availableSizes: form.availableSizes,
+        availableLengths: form.availableLengths,
+        availableStyles: form.availableStyles,
+        images: form.images.map((img) => img.url),
+      };
+
+      const patchRes = await fetch(`${API}/api/admin/products/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(productPayload),
+      });
+      const patchData = await patchRes.json();
+      if (!patchRes.ok)
+        throw new Error(patchData.error || "Failed to save product.");
+
+      // 2. Save variants — existing ones (have id) → PATCH, new ones (no id) → POST
+      await Promise.all(
+        form.variants.map((v) => {
+          const variantPayload = {
+            colorName: v.colorName,
+            colorHex: v.colorHex,
+            sku: v.sku,
+            stock: parseInt(v.stock, 10) || 0,
+            priceOverride: v.priceOverride ? parseFloat(v.priceOverride) : null,
+            isDefault: v.isDefault,
+            images: (v.images || []).map((img) => img.url),
+          };
+          if (v.id) {
+            return fetch(`${API}/api/admin/products/${id}/variants/${v.id}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify(variantPayload),
+            });
+          } else {
+            return fetch(`${API}/api/admin/products/${id}/variants`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify(variantPayload),
+            });
+          }
+        }),
       );
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to create product.");
-      toast.success(`"${form.name}" created successfully!`);
+
+      toast.success(`"${form.name}" saved successfully!`);
       router.push("/dashboard/products");
     } catch (err) {
       toast.error(err.message);
@@ -373,11 +460,40 @@ export default function NewProductPage() {
     }
   }
 
+  // ── Loading state ─────────────────────────────────────────────────────────
+  if (loadingProduct) {
+    return (
+      <div className="flex flex-1 flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+        <div className="flex items-center gap-4">
+          <Skeleton className="size-9 rounded-md" />
+          <div className="space-y-1.5">
+            <Skeleton className="h-5 w-48" />
+            <Skeleton className="h-4 w-72" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-6">
+          <div className="space-y-6">
+            {[...Array(3)].map((_, i) => (
+              <Skeleton key={i} className="h-48 w-full rounded-xl" />
+            ))}
+          </div>
+          <div className="space-y-6">
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="h-28 w-full rounded-xl" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!form) return null;
+
   const isAbaya = form.type === "ABAYA";
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
-      {/* ── header ── */}
+      {/* ── Header ── */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
           <Link href="/dashboard/products">
@@ -385,17 +501,15 @@ export default function NewProductPage() {
           </Link>
         </Button>
         <div>
-          <h1 className="text-xl font-semibold">Add New Product</h1>
-          <p className="text-sm text-muted-foreground">
-            Fill in the details below to create a new product.
-          </p>
+          <h1 className="text-xl font-semibold">Edit Product</h1>
+          <p className="text-sm text-muted-foreground">{form.name}</p>
         </div>
         <div className="ml-auto flex gap-2">
           <Button variant="outline" asChild>
             <Link href="/dashboard/products">Discard</Link>
           </Button>
           <Button onClick={handleSubmit} disabled={submitting}>
-            {submitting ? "Saving…" : "Save Product"}
+            {submitting ? "Saving…" : "Save Changes"}
           </Button>
         </div>
       </div>
@@ -423,7 +537,7 @@ export default function NewProductPage() {
               <div className="space-y-1.5">
                 <Label>Description</Label>
                 <Textarea
-                  placeholder="Describe the product — fabric feel, drape, occasion..."
+                  placeholder="Describe the product..."
                   className="min-h-32 resize-y"
                   value={form.description}
                   onChange={(e) => set("description", e.target.value)}
@@ -465,7 +579,6 @@ export default function NewProductPage() {
                     onChange={(e) => set("fabric", e.target.value)}
                   />
                 </div>
-
                 <div className="space-y-2">
                   <Label>Available Sizes</Label>
                   <div className="flex flex-wrap gap-2">
@@ -479,7 +592,6 @@ export default function NewProductPage() {
                     ))}
                   </div>
                 </div>
-
                 <div className="space-y-2">
                   <Label>Available Lengths (inches)</Label>
                   <div className="flex flex-wrap gap-2">
@@ -493,21 +605,20 @@ export default function NewProductPage() {
                     ))}
                   </div>
                 </div>
-
                 <div className="space-y-2">
                   <Label>Available Front-Opening Styles</Label>
                   <div className="space-y-2">
                     {ABAYA_STYLES.map((s) => (
                       <div key={s.value} className="flex items-center gap-2">
                         <Checkbox
-                          id={s.value}
+                          id={`style-${s.value}`}
                           checked={form.availableStyles.includes(s.value)}
                           onCheckedChange={() =>
                             toggleMulti("availableStyles", s.value)
                           }
                         />
                         <Label
-                          htmlFor={s.value}
+                          htmlFor={`style-${s.value}`}
                           className="font-normal cursor-pointer"
                         >
                           {s.label}
@@ -516,16 +627,13 @@ export default function NewProductPage() {
                     ))}
                   </div>
                 </div>
-
                 <div className="flex items-center gap-3">
                   <Switch
                     id="shayla"
                     checked={form.shaylaIncluded}
                     onCheckedChange={(v) => set("shaylaIncluded", v)}
                   />
-                  <Label htmlFor="shayla">
-                    Shayla (headscarf) included with this abaya
-                  </Label>
+                  <Label htmlFor="shayla">Shayla (headscarf) included</Label>
                 </div>
               </CardContent>
             </Card>
@@ -549,11 +657,12 @@ export default function NewProductPage() {
             <CardContent className="space-y-4">
               {form.variants.map((v, i) => (
                 <ColorVariantCard
-                  key={i}
+                  key={v.id ?? `new-${i}`}
                   variant={v}
                   index={i}
                   onChange={updateVariant}
                   onRemove={() => removeVariant(i)}
+                  isOnly={form.variants.length === 1}
                 />
               ))}
             </CardContent>
@@ -577,7 +686,7 @@ export default function NewProductPage() {
               <div className="space-y-1.5">
                 <Label>Caption</Label>
                 <Input
-                  placeholder="Short social-style caption shown on product page"
+                  placeholder="Short social-style caption"
                   value={form.caption}
                   onChange={(e) => set("caption", e.target.value)}
                 />
@@ -770,7 +879,6 @@ export default function NewProductPage() {
                   </div>
                 ))}
               </div>
-
               {form.isLimitedEdition && (
                 <>
                   <Separator />
@@ -863,7 +971,7 @@ export default function NewProductPage() {
             type="submit"
             disabled={submitting}
           >
-            {submitting ? "Saving…" : "Save Product"}
+            {submitting ? "Saving…" : "Save Changes"}
           </Button>
         </div>
       </form>
